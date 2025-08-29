@@ -11,8 +11,12 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // Middlewares
-app.use(cors());
+// Middlewares
+app.use(cors({
+  origin: 'https://quick-file-share.vercel.app' // Replace with your actual Vercel frontend URL
+}));
 app.use(express.json());
+
 
 // Routes
 app.use("/", fileRoutes);
