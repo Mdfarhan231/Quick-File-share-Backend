@@ -57,7 +57,7 @@ export const handleDownload = (req, res) => {
     return res.status(404).json({ error: "File not found or expired" });
   }
 
-  // Check expiry
+  // Check expiry 
   if (Date.now() > fileRecord.expiresAt) {
     // Delete expired file from server
     try {
