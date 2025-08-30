@@ -1,11 +1,12 @@
-//  File inside controllers
-
 import multer from "multer";
 import { nanoid } from "nanoid";
 import path from "path";
 import fs from "fs";
+import dotenv from "dotenv";
 
-// Setup multer storage (save files into /uploads folder)
+dotenv.config();
+
+// ------------------ Multer Setup ------------------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -17,9 +18,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// In-memory store for uploaded files metadata
+// ------------------ In-Memory Store ------------------
+let files = {}; 
 // Example: { "abc123": { filePath, originalName, expiresAt } }
-let files = {};
+
+// ✅ Load HOSTNAME from .env (fallback localhost for dev)
+const HOSTNAME = process.env.HOSTNAME || "http://localhost:10000";
 
 // ------------------ Upload Controller ------------------
 export const handleUpload = [
@@ -38,17 +42,18 @@ export const handleUpload = [
       expiresAt
     };
 
-    // Example insecure link: rik.com/abc123
-    const insecureLink = `rik.com/${id}`;
+    // ✅ Generate link with Render hostname
+    const fileLink = `${HOSTNAME}/file/${id}`;
 
     res.json({
-      link: insecureLink,
+      id,
+      link: fileLink,
       expiresAt
     });
   }
 ];
 
-// ------------------ Download Controller ------------------//
+// ------------------ Download Controller ------------------
 export const handleDownload = (req, res) => {
   const { id } = req.params;
   const fileRecord = files[id];
@@ -59,7 +64,6 @@ export const handleDownload = (req, res) => {
 
   // Check expiry 
   if (Date.now() > fileRecord.expiresAt) {
-    // Delete expired file from server
     try {
       fs.unlinkSync(fileRecord.filePath);
     } catch (err) {
@@ -69,12 +73,10 @@ export const handleDownload = (req, res) => {
     return res.status(410).json({ error: "Link expired" });
   }
 
-  // Send file for download
   res.download(fileRecord.filePath, fileRecord.originalName);
 };
 
 // ------------------ Cleanup Task ------------------
-// Optional: Every minute, remove expired files
 setInterval(() => {
   const now = Date.now();
   for (const id in files) {
